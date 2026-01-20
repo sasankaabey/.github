@@ -45,7 +45,7 @@ command -v git >/dev/null 2>&1 || {
 mkdir -p "$BASE_DIR"
 
 echo "[sync] Listing repos for $ORG ..."
-REPOS_JSON="$(gh repo list "$ORG" --limit 200 --json name,owner,isArchived)"
+REPOS_JSON="$(gh repo list "$ORG" --limit 200 --json name,owner,isArchived,defaultBranchRef)"
 
 REPOS_TMP=$(REPOS_JSON="$REPOS_JSON" INCLUDE_ARCHIVED="$INCLUDE_ARCHIVED" python3 - <<'PY'
 import json, os
@@ -58,20 +58,27 @@ for repo in data:
         continue
     # Use the name (e.g., "sasankaabey/kitlabworks") for gh clone
     full_name = f"{repo['owner']['login']}/{repo['name']}"
-    print(f"{repo['name']}\t{full_name}")
+  default_branch = (repo.get("defaultBranchRef") or {}).get("name") or "main"
+  print(f"{repo['name']}\t{full_name}\t{default_branch}")
 PY
 )
 
 paths=""
 
-while IFS=$'\t' read -r name full_name; do
+while IFS=$'\t' read -r name full_name default_branch; do
   [ -z "$name" ] && continue
+  default_branch=${default_branch:-main}
   target="$BASE_DIR/$name"
 
   if [ -d "$target/.git" ]; then
     echo "[sync] Updating $name ..."
     git -C "$target" fetch --prune
-    git -C "$target" pull --ff-only
+    if git -C "$target" rev-parse --verify "origin/$default_branch" >/dev/null 2>&1; then
+      git -C "$target" checkout "$default_branch" >/dev/null 2>&1 || true
+      git -C "$target" pull --ff-only || true
+    else
+      echo "[sync] ⚠️  No remote branch origin/$default_branch; skipping pull for $name"
+    fi
   else
     echo "[sync] Cloning $name ..."
     if gh repo clone "$full_name" "$target" 2>&1; then
