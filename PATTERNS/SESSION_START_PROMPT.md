@@ -1,53 +1,82 @@
 # Session Starter Prompt
 
-Use this prompt at the beginning of any coding session with any agent. The agent will guide you through project selection and task planning.
+Use this prompt at the beginning of any coding session with any agent. The agent will guide you through project selection and task planning **across all your projects**.
 
 ---
 
-## Copy-Paste This Prompt
+## Copy-Paste This Prompt (Cross-Project View)
 
 ```
-Read my LOCAL_CONTEXT.md if it exists in the current directory, otherwise check for any repos in my workspace.
+Session start:
 
-Then run a session starter:
+1. **Scan workspace**: Look for all repos in ~/[username]/ with a TASKS.md file
+2. **Read all TASKS.md**: For each project, identify:
+   - What the project is (from LOCAL_CONTEXT.md if it exists)
+   - In-progress tasks with who's working on them
+   - Recently completed tasks (last 2-3)
+   - High-priority backlog items
+3. **Present options**: Show me a summary like:
+   
+   "You have 3 active projects:
+   
+   **Home Assistant** (ha-config)
+   - In progress: Update kitchen motion lights (Claude Code)
+   - Last completed: Migrated to org-level coordination
+   - Backlog: 8 items (3 high priority)
+   
+   **Project 2** (repo-name)
+   - In progress: None
+   - Last completed: [task]
+   - Backlog: X items
+   
+   **Project 3**
+   - ...
+   
+   What would you like to work on?"
 
-1. **Show my projects**: List repos you can see, identify which has a TASKS.md
-2. **Where we left off**: Read TASKS.md and show:
-   - In-progress tasks
-   - Recently completed tasks (last 3)
-   - Backlog items
-3. **Ask me**: 
-   - Do I want to continue in-progress work?
-   - Pick from backlog?
-   - Start something new?
-4. **Capture details**: Based on my answer, ask clarifying questions:
-   - What specifically needs to be done?
-   - What are acceptance criteria?
-   - Which agent is best (reference org/.github/AGENTS.md)?
-5. **Update TASKS.md**: Add/update tasks based on our conversation
-6. **Start work**: Execute the chosen task following org/.github/MULTI_AGENT_WORKFLOW.md
+4. **Let me choose**: 
+   - Continue in-progress work?
+   - Pick something from backlog?
+   - Start something new on any project?
+   
+5. **Capture details**: Ask clarifying questions about what I want to do
 
-Be conversational and help me think through what to prioritize.
+6. **Navigate & update**: 
+   - cd to the right repo
+   - Update TASKS.md with task details
+   - Route to correct agent (reference org/.github/AGENTS.md)
+   
+7. **Start work**: Execute following org/.github/MULTI_AGENT_WORKFLOW.md
+
+Be conversational and help me prioritize across all my projects.
 ```
 
 ---
 
 ## How It Works
 
-**You paste this** → Agent reads context → Presents options → You choose → Agent updates TASKS.md → Work begins
+**You paste this** → Agent scans ALL your projects → Shows consolidated view → You choose → Agent navigates and starts work
 
 **Example conversation:**
 
-**Agent**: "I see 2 repos: ha-config (Home Assistant) and a .github org repo. Your ha-config has these in-progress tasks:
-- Update kitchen motion lights
-- Document entity registry process
+**Agent**: "I found 3 projects with active work:
 
-And 3 backlog items:
-- Clean up Music Assistant entities
-- Fix Tuya light naming
-- Add plant watering automation
+**Home Assistant** (~/ha-config)
+- In progress: Update kitchen motion lights (Claude Code)
+- Last done: Migrated to org coordination
+- Backlog: 8 items including Tuya light naming (high priority)
 
-What would you like to work on today?"
+**Personal Website** (~/my-site)  
+- In progress: None
+- Last done: Fixed mobile nav
+- Backlog: 2 items
+
+**Data Analysis** (~/analysis-scripts)
+- In progress: Refactor data pipeline
+- Last done: Added logging
+- Backlog: 5 items
+
+Where would you like to continue? Or start something new?"
 
 **You**: "Let's tackle the Tuya light naming"
 
@@ -90,10 +119,12 @@ Be opinionated but defer to my choices.
 
 **For fast sessions, just tell agent:**
 
-- "Session start in ha-config" → Agent runs full session starter
-- "Quick check - what's in progress?" → Shows current work only
-- "Backlog review" → Shows all backlog items with suggestions
-- "New task: [description]" → Agent asks clarifying questions, adds to TASKS.md
+- **"Session start"** → Agent scans all projects, shows consolidated view
+- **"Continue where we left off"** → Shows in-progress tasks across all projects, asks which to continue
+- **"Show all my projects"** → Lists all repos with TASKS.md
+- **"What's high priority?"** → Shows high-priority backlog items across all projects
+- **"Quick check on [project name]"** → Deep dive into one project
+- **"New task: [description]"** → Agent asks which project, adds to TASKS.md
 
 ---
 
