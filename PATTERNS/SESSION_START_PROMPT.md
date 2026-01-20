@@ -15,29 +15,28 @@ Session start:
    - In-progress tasks with who's working on them
    - Recently completed tasks (last 2-3)
    - High-priority backlog items
-3. **Present options**: Show me a summary like:
+3. **Present numbered options**: Show me a menu like:
    
-   "You have 3 active projects:
+   "**IN PROGRESS:**
+   [1] Home Assistant: Update kitchen motion lights (Claude Code)
+   [2] Data Scripts: Refactor pipeline (Codex)
    
-   **Home Assistant** (ha-config)
-   - In progress: Update kitchen motion lights (Claude Code)
-   - Last completed: Migrated to org-level coordination
-   - Backlog: 8 items (3 high priority)
+   **HIGH PRIORITY BACKLOG:**
+   [3] Home Assistant: Fix Tuya light naming (Claude Code)
+   [4] Home Assistant: Clean up Music Assistant entities (Codex)
+   [5] Personal Website: Update portfolio section (Codex)
    
-   **Project 2** (repo-name)
-   - In progress: None
-   - Last completed: [task]
-   - Backlog: X items
+   **OTHER OPTIONS:**
+   [6] Show full backlog for a specific project
+   [7] Start something completely new
    
-   **Project 3**
-   - ...
-   
-   What would you like to work on?"
+   **Enter 1-7, or describe what you want to work on:**"
 
-4. **Let me choose**: 
-   - Continue in-progress work?
-   - Pick something from backlog?
-   - Start something new on any project?
+4. **Let me choose by number**: I can respond with:
+   - "1" → Continue that in-progress task
+   - "3" → Start that backlog item
+   - "7" → You ask me what new thing I want to do
+   - Or I describe: "I want to add a plant watering automation"
    
 5. **Capture details**: Ask clarifying questions about what I want to do
 
@@ -59,37 +58,38 @@ Be conversational and help me prioritize across all my projects.
 
 **Example conversation:**
 
-**Agent**: "I found 3 projects with active work:
+**Agent**: "Found work across 3 projects:
 
-**Home Assistant** (~/ha-config)
-- In progress: Update kitchen motion lights (Claude Code)
-- Last done: Migrated to org coordination
-- Backlog: 8 items including Tuya light naming (high priority)
+**IN PROGRESS:**
+[1] Home Assistant: Update kitchen motion lights (Claude Code)
+[2] Data Scripts: Refactor data pipeline (Codex)
 
-**Personal Website** (~/my-site)  
-- In progress: None
-- Last done: Fixed mobile nav
-- Backlog: 2 items
+**HIGH PRIORITY BACKLOG:**
+[3] Home Assistant: Fix Tuya light naming (Claude Code, 30 min)
+[4] Home Assistant: Clean Music Assistant entities (Codex, 15 min)
+[5] Personal Website: Update portfolio (Codex, 45 min)
 
-**Data Analysis** (~/analysis-scripts)
-- In progress: Refactor data pipeline
-- Last done: Added logging
-- Backlog: 5 items
+**OTHER:**
+[6] Show full backlog for a project
+[7] Start something new
 
-Where would you like to continue? Or start something new?"
+**Pick 1-7 or describe what you want:**"
 
-**You**: "Let's tackle the Tuya light naming"
+**You**: "3"
 
-**Agent**: "Got it. Tell me more - do you want to:
-1. Rename them in the entity registry?
-2. Update references in automations/groups?
-3. Both?
+**Agent**: "✅ Starting: Fix Tuya light naming
 
-What's the end goal?"
+This will:
+- SSH to HA server
+- Edit entity registry
+- Update references in light_groups.yaml and automations
+- Test naming consistency
 
-**You**: "Both. I want consistent naming: location_description pattern"
+Routing to Claude Code. Estimated: 30 minutes.
 
-**Agent**: "Perfect. I'll route this to Claude Code (needs SSH + entity registry). Adding to TASKS.md... Starting work now."
+Proceeding now..."
+
+[Agent navigates to ~/ha-config, updates TASKS.md, starts work]
 
 ---
 
@@ -119,12 +119,11 @@ Be opinionated but defer to my choices.
 
 **For fast sessions, just tell agent:**
 
-- **"Session start"** → Agent scans all projects, shows consolidated view
-- **"Continue where we left off"** → Shows in-progress tasks across all projects, asks which to continue
-- **"Show all my projects"** → Lists all repos with TASKS.md
-- **"What's high priority?"** → Shows high-priority backlog items across all projects
-- **"Quick check on [project name]"** → Deep dive into one project
-- **"New task: [description]"** → Agent asks which project, adds to TASKS.md
+- **"Session start"** → Get numbered menu of all options, respond with number
+- **"Continue where we left off"** → Shows in-progress tasks only, pick by number
+- **"What's high priority?"** → Shows high-priority backlog with numbers
+- **"Show backlog for [project]"** → Full numbered list for one project
+- Or just pick: **"1"**, **"3"**, **"7"** if you remember the menu
 
 ---
 
