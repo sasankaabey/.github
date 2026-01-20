@@ -72,7 +72,12 @@ while IFS=$'\t' read -r name url; do
     git -C "$target" pull --ff-only
   else
     echo "[sync] Cloning $name ..."
-    git clone "$url" "$target"
+    if git clone "$url" "$target" 2>&1; then
+      :  # Success, continue
+    else
+      echo "[sync] ⚠️  Failed to clone $name (skipping)"
+      continue
+    fi
   fi
 
   paths="$paths
