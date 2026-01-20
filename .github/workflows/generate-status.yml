@@ -1,4 +1,4 @@
-name: Generate Status Feed
+name: Update Status Gist
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:  # Manual trigger
 
 jobs:
-  generate-status:
+  update-gist:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout .github repo
@@ -16,115 +16,58 @@ jobs:
         with:
           path: .github
           
-      - name: Checkout all sasankaabey repos
-        run: |
-          mkdir -p repos
-          cd repos
-          # Add your repos here
-          git clone https://github.com/sasankaabey/home-assistant-config.git || true
-          # Add more repos as you create them
-          
-      - name: Generate status JSON
-        run: |
-          python3 << 'EOF'
-          import json
-          import os
-          import re
-          from datetime import datetime
-          
-          repos = []
-          
-          # Scan all repos
-          for repo_dir in os.listdir('repos'):
-            repo_path = f'repos/{repo_dir}'
-            tasks_file = f'{repo_path}/TASKS.md'
-            context_file = f'{repo_path}/LOCAL_CONTEXT.md'
-            
-            if not os.path.exists(tasks_file):
-              continue
-              
-            # Read project name from LOCAL_CONTEXT.md
-            project_name = repo_dir.replace('-', ' ').title()
-            if os.path.exists(context_file):
-              with open(context_file) as f:
-                first_line = f.readline()
-                if first_line.startswith('#'):
-                  project_name = first_line.strip('# \n')
-            
-            # Parse TASKS.md
-            with open(tasks_file) as f:
-              content = f.read()
-              
-            in_progress = []
-            completed = []
-            backlog = []
-            
-            # Simple regex parsing (improve as needed)
-            tasks = re.split(r'\n### ', content)
-            for task in tasks[1:]:  # Skip header
-              lines = task.split('\n')
-              title = lines[0]
-              
-              status = 'Backlog'
-              agent = ''
-              description = ''
-              
-              for line in lines[1:]:
-                if '**Status:**' in line:
-                  status = line.split('**Status:**')[1].strip()
-                if '**Agent:**' in line:
-                  agent = line.split('**Agent:**')[1].strip()
-                if '**Description:**' in line:
-                  description = line.split('**Description:**')[1].strip()
-              
-              task_obj = {
-                'title': title,
-                'status': status,
-                'agent': agent,
-                'description': description
-              }
-              
-              if 'In Progress' in status or 'in-progress' in status.lower():
-                in_progress.append(task_obj)
-              elif 'Completed' in status or 'completed' in status.lower():
-                completed.append(task_obj)
-              else:
-                backlog.append(task_obj)
-            
-            repos.append({
-              'name': project_name,
-              'slug': repo_dir,
-              'url': f'https://github.com/sasankaabey/{repo_dir}',
-              'in_progress': in_progress,
-              'completed': completed[:5],  # Last 5
-              'backlog': backlog[:10],  # Top 10
-              'stats': {
-                'in_progress': len(in_progress),
-                'completed': len(completed),
-                'backlog': len(backlog)
-              }
-            })
-          
-          output = {
-            'updated': datetime.now().isoformat(),
-            'repos': repos,
-            'summary': {
-              'total_in_progress': sum(r['stats']['in_progress'] for r in repos),
-              'total_completed': sum(r['stats']['completed'] for r in repos),
-              'total_backlog': sum(r['stats']['backlog'] for r in repos)
-            }
-          }
-          
-          with open('status.json', 'w') as f:
-            json.dump(output, f, indent=2)
-          
-          print(f"Generated status for {len(repos)} repos")
-          EOF
-          
-      - name: Publish to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Checkout home-assistant-config
+        uses: actions/checkout@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
-          publish_branch: gh-pages
-          keep_files: false
+          repository: sasankaabey/home-assistant-config
+          path: ha-config
+          
+      - name: Generate status markdown
+        run: |
+          cat > status.md << 'MDEOF'
+          # Kit Lab Works - Live Status
+          
+          *Auto-updated from GitHub • Last refresh: $(date -u '+%Y-%m-%d %H:%M UTC')*
+          
+          ---
+          
+          MDEOF
+          
+          # Parse TASKS.md from home-assistant-config
+          if [ -f "ha-config/TASKS.md" ]; then
+            echo "## 🏠 Home Assistant" >> status.md
+            echo "" >> status.md
+            echo "[View Repository →](https://github.com/sasankaabey/home-assistant-config)" >> status.md
+            echo "" >> status.md
+            
+            # Extract in-progress tasks
+            echo "### 🔄 Currently Working On" >> status.md
+            echo "" >> status.md
+            grep -A 5 "Status:\*\* In Progress" ha-config/TASKS.md | grep "^###" | sed 's/### /- /' >> status.md || echo "- Nothing in progress" >> status.md
+            echo "" >> status.md
+            
+            # Extract completed tasks (last 3)
+            echo "### ✅ Recently Completed" >> status.md
+            echo "" >> status.md
+            grep -A 5 "Status:\*\* Completed" ha-config/TASKS.md | grep "^###" | head -3 | sed 's/### /- /' >> status.md || echo "- No recent completions" >> status.md
+            echo "" >> status.md
+            
+            # Count backlog
+            backlog_count=$(grep -c "Status:\*\* Not Started" ha-config/TASKS.md || echo "0")
+            echo "### 📋 Backlog" >> status.md
+            echo "" >> status.md
+            echo "${backlog_count} tasks waiting" >> status.md
+            echo "" >> status.md
+          fi
+          
+          echo "---" >> status.md
+          echo "" >> status.md
+          echo "*Powered by [multi-agent workflow](https://github.com/sasankaabey/.github) • Updates every 6 hours*" >> status.md
+          
+      - name: Update gist
+        uses: exuanbo/actions-deploy-gist@v1
+        with:
+          token: ${{ secrets.GIST_SECRET }}
+          gist_id: 81767151e079753e16d249fe2d57bc47
+          file_path: status.md
+          file_type: text
