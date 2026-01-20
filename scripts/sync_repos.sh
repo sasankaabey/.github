@@ -56,13 +56,15 @@ include_archived = os.environ.get("INCLUDE_ARCHIVED", "false").lower() == "true"
 for repo in data:
     if repo.get("isArchived") and not include_archived:
         continue
-    print(f"{repo['name']}\t{repo['sshUrl']}")
+    # Use the name (e.g., "sasankaabey/kitlabworks") for gh clone
+    full_name = f"{repo['owner']['login']}/{repo['name']}"
+    print(f"{repo['name']}\t{full_name}")
 PY
 )
 
 paths=""
 
-while IFS=$'\t' read -r name url; do
+while IFS=$'\t' read -r name full_name; do
   [ -z "$name" ] && continue
   target="$BASE_DIR/$name"
 
@@ -72,7 +74,7 @@ while IFS=$'\t' read -r name url; do
     git -C "$target" pull --ff-only
   else
     echo "[sync] Cloning $name ..."
-    if git clone "$url" "$target" 2>&1; then
+    if gh repo clone "$full_name" "$target" 2>&1; then
       :  # Success, continue
     else
       echo "[sync] ⚠️  Failed to clone $name (skipping)"
