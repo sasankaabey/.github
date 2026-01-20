@@ -54,10 +54,10 @@ data = json.loads(os.environ["REPOS_JSON"])
 include_archived = os.environ.get("INCLUDE_ARCHIVED", "false").lower() == "true"
 
 for repo in data:
-    if repo.get("isArchived") and not include_archived:
-        continue
-    # Use the name (e.g., "sasankaabey/kitlabworks") for gh clone
-    full_name = f"{repo['owner']['login']}/{repo['name']}"
+  if repo.get("isArchived") and not include_archived:
+    continue
+  # Use the name (e.g., "sasankaabey/kitlabworks") for gh clone
+  full_name = f"{repo['owner']['login']}/{repo['name']}"
   default_branch = (repo.get("defaultBranchRef") or {}).get("name") or "main"
   print(f"{repo['name']}\t{full_name}\t{default_branch}")
 PY
