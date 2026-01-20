@@ -45,7 +45,7 @@ command -v git >/dev/null 2>&1 || {
 mkdir -p "$BASE_DIR"
 
 echo "[sync] Listing repos for $ORG ..."
-REPOS_JSON="$(gh repo list "$ORG" --limit 200 --json name,sshUrl,isArchived)"
+REPOS_JSON="$(gh repo list "$ORG" --limit 200 --json name,owner,isArchived)"
 
 REPOS_TMP=$(REPOS_JSON="$REPOS_JSON" INCLUDE_ARCHIVED="$INCLUDE_ARCHIVED" python3 - <<'PY'
 import json, os
