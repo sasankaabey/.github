@@ -12,12 +12,21 @@ set -euo pipefail
 
 ORG="${ORG:-sasankaabey}"
 
-# Auto-detect base directory: use /workspaces in devcontainer, parent of script elsewhere
+# Auto-detect base directory: use /workspaces in devcontainer, sasankaabey folder elsewhere
 if [ -w /workspaces 2>/dev/null ]; then
   BASE_DIR="${BASE_DIR:-/workspaces}"
 else
-  # Get the parent directory of the .github folder (where the script is)
-  BASE_DIR="${BASE_DIR:-$(dirname "$(dirname "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)")")}"
+  # Find the sasankaabey folder that contains .github
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  GITHUB_DIR="$(dirname "$SCRIPT_DIR")"
+  PARENT_DIR="$(dirname "$GITHUB_DIR")"
+  
+  # Check if parent is named sasankaabey, if not use parent of .github
+  if [ "$(basename "$PARENT_DIR")" = "sasankaabey" ]; then
+    BASE_DIR="${BASE_DIR:-$PARENT_DIR}"
+  else
+    BASE_DIR="${BASE_DIR:-$PARENT_DIR}"
+  fi
 fi
 
 WORKSPACE_FILE="${WORKSPACE_FILE:-$BASE_DIR/sasankaabey.code-workspace}"
