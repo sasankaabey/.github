@@ -6,7 +6,7 @@ set -euo pipefail
 #
 # Environment overrides:
 #   ORG                GitHub user/org to sync (default: sasankaabey)
-#   BASE_DIR           Where to place the repos (default: /workspaces)
+#   BASE_DIR           Where to place the repos (default: /workspaces or parent of this script)
 #   WORKSPACE_FILE     Path to the .code-workspace file (default: $BASE_DIR/sasankaabey.code-workspace)
 #   INCLUDE_ARCHIVED   If "true", also sync archived repos (default: false)
 
@@ -38,24 +38,23 @@ mkdir -p "$BASE_DIR"
 echo "[sync] Listing repos for $ORG ..."
 REPOS_JSON="$(gh repo list "$ORG" --limit 200 --json name,sshUrl,isArchived)"
 
-mapfile -t REPOS < <(REPOS_JSON="$REPOS_JSON" INCLUDE_ARCHIVED="$INCLUDE_ARCHIVED" python3 - <<'PY'
+REPOS_TMP=$(REPOS_JSON="$REPOS_JSON" INCLUDE_ARCHIVED="$INCLUDE_ARCHIVED" python3 - <<'PY'
 import json, os
 
 data = json.loads(os.environ["REPOS_JSON"])
 include_archived = os.environ.get("INCLUDE_ARCHIVED", "false").lower() == "true"
 
 for repo in data:
-  if repo.get("isArchived") and not include_archived:
-    continue
-  print(f"{repo['name']}\t{repo['sshUrl']}")
+    if repo.get("isArchived") and not include_archived:
+        continue
+    print(f"{repo['name']}\t{repo['sshUrl']}")
 PY
 )
 
-paths=()
+paths=""
 
-for line in "${REPOS[@]}"; do
-  name="${line%%$'\t'*}"
-  url="${line#*$'\t'}"
+while IFS=$'\t' read -r name url; do
+  [ -z "$name" ] && continue
   target="$BASE_DIR/$name"
 
   if [ -d "$target/.git" ]; then
@@ -67,13 +66,14 @@ for line in "${REPOS[@]}"; do
     git clone "$url" "$target"
   fi
 
-  paths+=("$target")
-done
+  paths="$paths
+$target"
+done <<< "$REPOS_TMP"
 
 # Ensure deterministic ordering and uniqueness
-mapfile -t SORTED_PATHS < <(printf "%s\n" "${paths[@]}" | sort -u)
+SORTED_PATHS=$(printf "%s" "$paths" | grep -v '^$' | sort -u)
 
-printf "%s\n" "${SORTED_PATHS[@]}" | python3 - "$WORKSPACE_FILE" <<'PY'
+printf "%s" "$SORTED_PATHS" | python3 - "$WORKSPACE_FILE" <<'PY'
 import json, sys
 
 paths = [line.strip() for line in sys.stdin if line.strip()]
