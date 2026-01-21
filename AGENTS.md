@@ -98,11 +98,76 @@ This document defines which AI agent handles which type of work in this project.
 
 ---
 
+### 🔍 Log Monitor Agent (HA Project - Proactive Monitoring)
+**Use For:**
+- **Automatic log review** on every HA project session start
+- Severity/impact assessment of errors and warnings
+- Creating work items in TASKS.md for critical issues
+- **Auto-handoff** for addressable issues (no user input needed)
+- Tracking recurring errors for pattern analysis
+
+**Workflow:**
+1. **On HA project entry:** Auto-fetch logs via SSH
+2. **Triage errors:** Categorize by severity (Critical/High/Medium/Low/Ignorable)
+3. **Action routing:**
+   - **Critical/High + Auto-fixable** → Handoff to Claude Code immediately
+   - **Critical/High + Needs input** → Add to TASKS.md backlog with context
+   - **Medium** → Add to backlog, flag for review
+   - **Low/Ignorable** → Log in session notes, no action
+4. **Handoffs:**
+   - **Coding Agent (Claude Code):** For fixes
+   - **Observer Agent (Codex):** To document fixes in CHANGELOG/HOME_ASSISTANT.md
+   - **Status Agent (ChatGPT/Codex):** To update TASKS.md with resolution status
+
+**Cost Profile:** Medium (automated, runs on session start)
+
+**Example Workflow:**
+```
+1. Log Monitor detects: "Integration 'tuya' failed to setup"
+2. Assesses: HIGH severity (cloud integration offline)
+3. Checks: Auto-fixable? NO (requires debugging)
+4. Creates task in TASKS.md:
+   ### Fix Tuya Integration Failure
+   **Priority:** HIGH
+   **Agent:** Claude Code
+   **Context:** tuya setup failed at 14:32, check auth
+5. Notifies user: "1 HIGH priority issue added to backlog"
+```
+
+**Example Auto-Fix:**
+```
+1. Log Monitor detects: "Light group 'living_room_lamps' missing entity light.floor_lamp_3"
+2. Assesses: MEDIUM severity (group degraded but functional)
+3. Checks: Auto-fixable? YES (entity just renamed)
+4. Handoff to Claude Code:
+   - Fix: Update light_groups.yaml with correct entity ID
+   - Test: Restart HA, verify group loads
+5. Handoff to Codex:
+   - Document in CHANGELOG.md
+6. Handoff to Status Agent:
+   - Update session notes: "Auto-fixed light group entity mismatch"
+```
+
+**Log Sources:**
+- HA Core logs: `ha logs --lines 200`
+- Integration errors: `ha logs --filter integration --lines 100`
+- Custom component logs: Focus on custom_components/
+
+**Frequency:** Every session start + on-demand when requested
+
+---
+
 ## Decision Tree for Task Routing
 
 ```
 START: You have a task
 
+├─ Is this the start of an HA project session?
+│  └─ YES → Log Monitor Agent (auto-review logs)
+│     ├─ Critical/High + Auto-fixable → Claude Code (immediate fix)
+│     ├─ Critical/High + Needs input → Add to TASKS.md backlog
+│     └─ Medium/Low → Log and track
+│
 ├─ Does it require SSH/server access?
 │  └─ YES → Claude Code
 │
@@ -304,6 +369,7 @@ Use these in [TASKS.md](TASKS.md) to track progress:
 
 | Task Type | Agent | Time Estimate |
 |-----------|-------|----------------|
+| **Session start log review** | **Log Monitor** | **2-5 min** |
 | Brainstorm feature | ChatGPT | 5 min |
 | Draft YAML automation | Codex | 10-20 min |
 | Validate & deploy | Claude Code | 15-30 min |
