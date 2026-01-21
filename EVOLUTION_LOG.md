@@ -17,6 +17,22 @@ A living record of what we learned from building products across multiple repos,
 
 ---
 
+## Learning Escalation Protocol
+
+When working on a project-level task, escalate learnings to this org-level log:
+
+1. **Patterns that work**: Discovered a reusable solution? Document it here so other projects benefit.
+2. **Pitfalls avoided**: Hit a gotcha? Record it so others don't repeat it.
+3. **Workflow improvements**: Found a better way to coordinate agents? Update the workflow docs and log it here.
+4. **Tool discoveries**: New command, script, or technique that saves time? Share it.
+
+**How to escalate:**
+- Add an entry to this log following the format below
+- Update relevant docs (AGENTS.md, MULTI_AGENT_WORKFLOW.md, etc.) if the learning changes how we work
+- Reference the source project in the entry
+
+---
+
 ## Format
 
 ```markdown
@@ -26,6 +42,7 @@ A living record of what we learned from building products across multiple repos,
 **What Changed:** What's different now?
 **Impact:** How does this help?
 **Applies To:** [Agent/Process/Tool]
+**Source:** [Project/Repo where this was learned]
 **Updated:** [Which docs were changed]
 ```
 

@@ -1,0 +1,14 @@
+{
+  "name": "sasankaabey-workspaces",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "postStartCommand": "/workspaces/.github/scripts/sync_repos.sh",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "files.exclude": {
+          "**/.git": true
+        }
+      }
+    }
+  }
+}
