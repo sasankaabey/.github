@@ -127,6 +127,17 @@ class LogPatterns:
         re.IGNORECASE
     )
     
+    # Async/task exceptions
+    ASYNC_EXCEPTION = re.compile(
+        r'Error doing job.*Task exception was never retrieved',
+        re.IGNORECASE
+    )
+    
+    SERVICE_NOT_FOUND = re.compile(
+        r'ServiceNotFound.*Action (notify\.\S+)',
+        re.IGNORECASE
+    )
+    
     # Known ignorable patterns
     IGNORABLE_PATTERNS = [
         re.compile(r'VS\s*Code.*schema', re.IGNORECASE),
@@ -135,6 +146,8 @@ class LogPatterns:
         re.compile(r'Starting Home Assistant', re.IGNORECASE),  # Startup messages
         re.compile(r'ALTS creds ignored', re.IGNORECASE),  # Google Cloud credential warnings (expected)
         re.compile(r'Failed to refresh device state for.*tuya_local', re.IGNORECASE),  # Transient tuya errors
+        re.compile(r'Error doing job.*Task exception was never retrieved', re.IGNORECASE),  # Caught async exceptions
+        re.compile(r'ServiceNotFound.*notify\.mobile_app', re.IGNORECASE),  # Missing mobile app services (non-critical)
     ]
 
 
@@ -179,9 +192,23 @@ class LogParser:
     def parse_logs(self, log_content: str) -> List[LogIssue]:
         """Parse log content and extract issues"""
         issues = []
+        skip_next_lines = False
         
         for line in log_content.split('\n'):
             if not line.strip():
+                continue
+            
+            # Skip continuation/traceback lines (Python stack traces)
+            if line.strip().startswith(('Traceback', 'File "', 'raise ', 'except ', '->')) or re.match(r'^\s{2,}', line):
+                skip_next_lines = True
+                continue
+            
+            # If we encounter a new error line (starts with date/time), stop skipping tracebacks
+            if re.match(r'\d{4}-\d{2}-\d{2}', line):
+                skip_next_lines = False
+            
+            # Skip if in traceback
+            if skip_next_lines:
                 continue
             
             # Check ignorable patterns first
@@ -215,6 +242,10 @@ class LogParser:
     
     def _classify_line(self, line: str, timestamp: str) -> Optional[LogIssue]:
         """Classify a log line into an issue"""
+        
+        # Skip lines that are clearly traceback/continuation of previous error
+        if line.startswith('  ') or line.startswith('Traceback') or line.startswith('File "'):
+            return None
         
         # Integration setup failure
         match = self.patterns.INTEGRATION_SETUP_FAILED.search(line)
