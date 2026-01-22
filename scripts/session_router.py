@@ -286,7 +286,7 @@ class TaskDecomposer:
         # Example decomposition patterns
         subtasks = []
         
-        # Pattern 1: Documentation + Implementation + Deployment
+        # Pattern 1: Documentation + Implementation + Deployment (with review)
         if "implement" in task.name.lower() or "create" in task.name.lower():
             subtasks = [
                 Subtask(
@@ -300,56 +300,108 @@ class TaskDecomposer:
                     id=f"{task.id}_implement",
                     description=f"Implement: {task.name}",
                     agent=task.agent,
-                    estimated_minutes=task.estimated_minutes - 20,
+                    estimated_minutes=task.estimated_minutes - 30,
                     dependencies=[f"{task.id}_plan"],
                     parallel_ok=False
                 ),
                 Subtask(
-                    id=f"{task.id}_test",
-                    description=f"Test implementation: {task.name}",
-                    agent=AgentType.CLAUDE_CODE,
+                    id=f"{task.id}_review",
+                    description=f"Review implementation: {task.name}",
+                    agent=AgentType.CODEX,  # Codex reviews code quality, docs, conventions
                     estimated_minutes=10,
                     dependencies=[f"{task.id}_implement"],
+                    parallel_ok=False
+                ),
+                Subtask(
+                    id=f"{task.id}_test",
+                    description=f"Test and validate: {task.name}",
+                    agent=AgentType.CLAUDE_CODE,
+                    estimated_minutes=10,
+                    dependencies=[f"{task.id}_review"],
                     parallel_ok=False
                 )
             ]
         
-        # Pattern 2: Research + Documentation
+        # Pattern 2: Research + Documentation (with review)
         elif "document" in task.name.lower() or "research" in task.name.lower():
             subtasks = [
                 Subtask(
                     id=f"{task.id}_research",
                     description=f"Research: {task.name}",
                     agent=AgentType.PERPLEXITY,
-                    estimated_minutes=task.estimated_minutes // 2,
+                    estimated_minutes=task.estimated_minutes // 3,
                     parallel_ok=True
                 ),
                 Subtask(
                     id=f"{task.id}_document",
                     description=f"Document findings: {task.name}",
                     agent=AgentType.CODEX,
-                    estimated_minutes=task.estimated_minutes // 2,
+                    estimated_minutes=task.estimated_minutes // 3,
                     dependencies=[f"{task.id}_research"],
+                    parallel_ok=False
+                ),
+                Subtask(
+                    id=f"{task.id}_review",
+                    description=f"Review documentation: {task.name}",
+                    agent=AgentType.CHATGPT,  # ChatGPT reviews clarity, completeness
+                    estimated_minutes=task.estimated_minutes // 3,
+                    dependencies=[f"{task.id}_document"],
                     parallel_ok=False
                 )
             ]
         
-        # Pattern 3: Home Assistant automation (YAML + Deployment)
+        # Pattern 3: Home Assistant automation (YAML + Review + Deployment + Validation)
         elif task.project == "home-assistant-config":
             subtasks = [
                 Subtask(
                     id=f"{task.id}_yaml",
                     description=f"Draft YAML for: {task.name}",
                     agent=AgentType.CODEX,
-                    estimated_minutes=task.estimated_minutes // 2,
+                    estimated_minutes=int(task.estimated_minutes * 0.4),
+                    parallel_ok=False
+                ),
+                Subtask(
+                    id=f"{task.id}_review",
+                    description=f"Review YAML structure and conventions: {task.name}",
+                    agent=AgentType.CHATGPT,  # ChatGPT reviews for logic, edge cases
+                    estimated_minutes=int(task.estimated_minutes * 0.2),
+                    dependencies=[f"{task.id}_yaml"],
                     parallel_ok=False
                 ),
                 Subtask(
                     id=f"{task.id}_validate",
-                    description=f"Validate and deploy: {task.name}",
+                    description=f"Validate syntax and deploy: {task.name}",
                     agent=AgentType.CLAUDE_CODE,
-                    estimated_minutes=task.estimated_minutes // 2,
-                    dependencies=[f"{task.id}_yaml"],
+                    estimated_minutes=int(task.estimated_minutes * 0.2),
+                    dependencies=[f"{task.id}_review"],
+                    parallel_ok=False
+                ),
+                Subtask(
+                    id=f"{task.id}_test",
+                    description=f"Test automation on server: {task.name}",
+                    agent=AgentType.CLAUDE_CODE,
+                    estimated_minutes=int(task.estimated_minutes * 0.2),
+                    dependencies=[f"{task.id}_validate"],
+                    parallel_ok=False
+                )
+            ]
+        
+        # Pattern 4: Bug fix or cleanup (implementation + validation)
+        elif "fix" in task.name.lower() or "cleanup" in task.name.lower() or "refactor" in task.name.lower():
+            subtasks = [
+                Subtask(
+                    id=f"{task.id}_fix",
+                    description=f"Fix/cleanup: {task.name}",
+                    agent=task.agent,
+                    estimated_minutes=int(task.estimated_minutes * 0.7),
+                    parallel_ok=False
+                ),
+                Subtask(
+                    id=f"{task.id}_verify",
+                    description=f"Verify fix: {task.name}",
+                    agent=AgentType.CLAUDE_CODE,  # Claude Code tests the fix
+                    estimated_minutes=int(task.estimated_minutes * 0.3),
+                    dependencies=[f"{task.id}_fix"],
                     parallel_ok=False
                 )
             ]
@@ -497,7 +549,79 @@ The router will automatically detect your completed work and generate the next p
     def _get_task_specific_instructions(self, task: Task, subtask: Subtask) -> str:
         """Generate specific instructions based on task type"""
         
-        if subtask.agent == AgentType.CODEX:
+        # Check if this is a review/validation subtask
+        is_review = "review" in subtask.id or "verify" in subtask.id
+        
+        if is_review and subtask.agent == AgentType.CODEX:
+            return f"""
+**As Codex (Reviewer), your role is:**
+- Review code quality and conventions
+- Check documentation completeness
+- Verify YAML syntax and structure
+- Ensure consistency with existing patterns
+
+**For this review task:**
+1. Read the work done by previous agent (check git log)
+2. Review against conventions in {task.project}/LOCAL_CONTEXT.md
+3. Check for:
+   - Code follows style guide
+   - Documentation is clear
+   - No obvious bugs or issues
+   - Naming conventions followed
+4. If issues found:
+   - Document them clearly
+   - Suggest fixes (or fix them yourself if minor)
+5. If all good:
+   - Approve and document what was validated
+   - Hand off to next agent
+"""
+        
+        elif is_review and subtask.agent == AgentType.CHATGPT:
+            return f"""
+**As ChatGPT (Reviewer), your role is:**
+- Review logic and design decisions
+- Check for edge cases and potential issues
+- Validate completeness
+- Suggest improvements
+
+**For this review task:**
+1. Read the work done by previous agent (check git log)
+2. Analyze for:
+   - Logic correctness
+   - Edge cases covered
+   - User experience considerations
+   - Potential failure modes
+3. If concerns found:
+   - Document them with examples
+   - Suggest alternatives
+4. If approved:
+   - Document what was validated
+   - Note any future enhancements
+"""
+        
+        elif is_review and subtask.agent == AgentType.CLAUDE_CODE:
+            return f"""
+**As Claude Code (Validator), your role is:**
+- Test functionality
+- Verify deployment works
+- Check server-side behavior
+- Validate real-world operation
+
+**For this validation task:**
+1. Review previous agent's work (check git log)
+2. Test the implementation:
+   - Run on actual server (if HA project)
+   - Check logs for errors
+   - Verify expected behavior
+3. If issues found:
+   - Debug and fix them
+   - Document what was wrong
+4. If working:
+   - Document test results
+   - Confirm ready for production
+"""
+        
+        elif subtask.agent == AgentType.CODEX:
             return f"""
 **As Codex, your role is:**
 - Documentation writing
@@ -546,20 +670,42 @@ The router will automatically detect your completed work and generate the next p
     
     def _generate_success_criteria(self, task: Task, subtask: Subtask) -> str:
         """Generate success checklist"""
-        criteria = f"""
+        
+        # Check if this is a review/validation subtask
+        is_review = "review" in subtask.id or "verify" in subtask.id
+        
+        if is_review:
+            criteria = f"""
+- [ ] Reviewed previous agent's work (checked git log)
+- [ ] Verified against project conventions
+- [ ] Checked for logic errors or edge cases
+- [ ] Tested functionality (if applicable)
+"""
+            
+            if subtask.agent == AgentType.CLAUDE_CODE:
+                criteria += "- [ ] Tested on server (if HA project)\n"
+                criteria += "- [ ] No errors in logs\n"
+            
+            criteria += """- [ ] Documented review findings
+- [ ] Either: Approved and ready for next step
+- [ ] Or: Issues documented with clear fixes needed
+- [ ] Changes committed to git
+"""
+        else:
+            criteria = f"""
 - [ ] Task completed: {subtask.description}
 - [ ] Code follows project conventions
 - [ ] Changes committed to git
 - [ ] TASKS.md updated with progress
 """
         
-        if subtask.agent == AgentType.CLAUDE_CODE:
-            criteria += "- [ ] Tested on server (if applicable)\n"
-            criteria += "- [ ] No errors in logs\n"
-        
-        if subtask.agent == AgentType.CODEX:
-            criteria += "- [ ] Documentation is clear and complete\n"
-            criteria += "- [ ] YAML is valid (if applicable)\n"
+            if subtask.agent == AgentType.CLAUDE_CODE and not is_review:
+                criteria += "- [ ] Tested on server (if applicable)\n"
+                criteria += "- [ ] No errors in logs\n"
+            
+            if subtask.agent == AgentType.CODEX:
+                criteria += "- [ ] Documentation is clear and complete\n"
+                criteria += "- [ ] YAML is valid (if applicable)\n"
         
         return criteria
     
