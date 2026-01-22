@@ -120,6 +120,18 @@ class TaskParser:
                     tasks_files.append(tasks_file)
         return tasks_files
     
+    def _is_valid_task_header(self, body: str) -> bool:
+        """Check if section has required task metadata"""
+        required_fields = [
+            r'\*\*Status:\*\*',
+            r'\*\*Priority:\*\*',
+            r'\*\*Agent:\*\*',
+        ]
+        for field in required_fields:
+            if not re.search(field, body):
+                return False
+        return True
+    
     def parse_tasks_file(self, tasks_file: Path) -> List[Task]:
         """Parse a single TASKS.md file"""
         content = tasks_file.read_text()
@@ -133,6 +145,11 @@ class TaskParser:
             lines = section.split('\n', 1)
             task_name = lines[0].strip()
             body = lines[1] if len(lines) > 1 else ""
+            
+            # CRITICAL: Only parse if has required metadata (fixes false task parsing)
+            if not self._is_valid_task_header(body):
+                # Skip this section - it's a header or incomplete task
+                continue
             
             # Extract metadata
             status_match = self.STATUS_PATTERN.search(body)

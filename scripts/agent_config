@@ -1,0 +1,11 @@
+#!/bin/bash
+# Agent Configuration Manager - Lightweight wrapper
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PYTHON_SCRIPT="$SCRIPT_DIR/agent_config_cli.py"
+
+# Make sure Python script is executable
+chmod +x "$PYTHON_SCRIPT"
+
+# Pass all arguments to Python script
+python3 "$PYTHON_SCRIPT" "$@"
