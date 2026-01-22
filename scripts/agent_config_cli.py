@@ -122,6 +122,50 @@ class AgentConfig:
             api_key_required=True,
             notes="Good for analyzing large files and reports"
         ),
+        "canva-ai": Agent(
+            id="canva-ai",
+            name="Canva AI",
+            description="Design, graphics, visual content, infographics, branding",
+            enabled=True,
+            cost="free",
+            specialties=["design", "graphics", "visual-content", "infographics", "branding"],
+            api_key_required=False,
+            endpoint="https://www.canva.com",
+            notes="Creative Suite available: Premium subscription active"
+        ),
+        "adobe-cc": Agent(
+            id="adobe-cc",
+            name="Adobe Creative Cloud",
+            description="Professional design, video editing, photo editing, publishing",
+            enabled=True,
+            cost="free",
+            specialties=["design", "video-editing", "photo-editing", "publishing", "animation"],
+            api_key_required=False,
+            endpoint="https://adobe.com",
+            notes="Full Creative Cloud Premium subscription active. Use for professional media work."
+        ),
+        "replit": Agent(
+            id="replit",
+            name="Replit",
+            description="Quick prototyping, deployment, collaborative coding, live testing",
+            enabled=True,
+            cost="free",
+            specialties=["prototyping", "deployment", "testing", "collaboration", "quick-dev"],
+            api_key_required=False,
+            endpoint="https://replit.com",
+            notes="Rapid development and testing environment for kitlabworks and experiments"
+        ),
+        "n8n": Agent(
+            id="n8n",
+            name="n8n Automation",
+            description="Workflow automation, integrations, task orchestration, API connections",
+            enabled=True,
+            cost="free",
+            specialties=["automation", "integration", "workflow", "api-connections", "ha-automation"],
+            api_key_required=False,
+            endpoint="https://n8n.cloud",
+            notes="n8n Starter plan active for one year. Perfect for Home Assistant automations and cross-system workflows"
+        ),
     }
     
     def __init__(self):
