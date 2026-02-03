@@ -25,7 +25,7 @@ NC='\033[0m' # No Color
 
 # Parse args
 MODE="interactive"
-LOG_MONITOR_ARGS=""
+LOG_MONITOR_ARGS=()
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -43,7 +43,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             # Pass through to log monitor
-            LOG_MONITOR_ARGS="$LOG_MONITOR_ARGS $1"
+            LOG_MONITOR_ARGS+=("$1")
             shift
             ;;
     esac
@@ -63,13 +63,13 @@ if [ "$MODE" = "health_only" ]; then
     # Full health check
     python3 "$SCRIPT_DIR/log_monitor.py" \
         --project-path "$HA_PROJECT" \
-        $LOG_MONITOR_ARGS
+        "${LOG_MONITOR_ARGS[@]}"
 else
     # Quick dry-run
     python3 "$SCRIPT_DIR/log_monitor.py" \
         --project-path "$HA_PROJECT" \
         --dry-run \
-        $LOG_MONITOR_ARGS
+        "${LOG_MONITOR_ARGS[@]}"
 fi
 
 HEALTH_EXIT_CODE=$?
