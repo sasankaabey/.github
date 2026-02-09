@@ -2,6 +2,8 @@
 
 This document defines which AI agent handles which type of work in this project. Use this to route tasks efficiently and maintain context focus.
 
+> **Claude Code Review Prompt:** When asked to review code, work in plan mode, or evaluate any project, always reference and follow [CODE_REVIEW_PROMPT.md](CODE_REVIEW_PROMPT.md) for the structured review workflow and engineering preferences.
+
 ---
 
 ## Agent Profiles & Specializations
